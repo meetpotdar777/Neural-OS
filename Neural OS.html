@@ -1,0 +1,2316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural OS</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background for OS feel */
+            color: #e2e8f0; /* Light text color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px; /* Add some padding around the OS */
+            box-sizing: border-box;
+        }
+
+        .os-container {
+            background-color: #2d3748; /* Darker grey for the OS window */
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); /* Stronger shadow */
+            width: 100%;
+            max-width: 600px; /* Max width for desktop view */
+            height: 80vh; /* Fixed height for the OS window */
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #4a5568; /* Subtle border */
+            transition: background-color 0.5s ease; /* For dark/light mode transition */
+        }
+        .os-container.light-mode {
+            background-color: #f7fafc; /* Light background */
+            color: #2d3748; /* Dark text */
+            border-color: #cbd5e0;
+        }
+        .os-container.light-mode .os-header {
+            background-color: #e2e8f0;
+            border-bottom-color: #cbd5e0;
+            color: #2d3748;
+        }
+        .os-container.light-mode .os-icon-button {
+            background-color: #90cdf4;
+            color: #2d3748;
+        }
+        .os-container.light-mode .generated-button {
+            background-color: #a7d9f7;
+            color: #2d3748;
+        }
+        .os-container.light-mode textarea,
+        .os-container.light-mode input[type="text"],
+        .os-container.light-mode input[type="email"] {
+            background-color: #e2e8f0;
+            border-color: #cbd5e0;
+            color: #2d3748;
+        }
+        .os-container.light-mode textarea::placeholder,
+        .os-container.light-mode input::placeholder {
+            color: #718096;
+        }
+        .os-container.light-mode .email-list-item,
+        .os-container.light-mode .email-detail,
+        .os-container.light-mode .filesystem-item,
+        .os-container.light-mode .file-content-box,
+        .os-container.light-mode .assistant-response,
+        .os-container.light-mode .app-list-item,
+        .os-container.light-mode .app-detail,
+        .os-container.light-mode .maps-results,
+        .os-container.light-mode .travel-result-box {
+            background-color: #e2e8f0;
+        }
+        .os-container.light-mode .email-list-item:hover,
+        .os-container.light-mode .filesystem-item:hover,
+        .os-container.light-mode .app-list-item:hover {
+            background-color: #dbe9f5;
+        }
+        .os-container.light-mode .email-list-item strong,
+        .os-container.light-mode .app-list-item strong {
+            color: #2d3748;
+        }
+        .os-container.light-mode .email-list-item span,
+        .os-container.light-mode .app-list-item span {
+            color: #4a5568;
+        }
+
+
+        .os-header {
+            background-color: #4a5568; /* Header background */
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid #667e9b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #cbd5e0;
+        }
+
+        .os-content {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto; /* Enable scrolling for content */
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center content horizontally */
+            justify-content: flex-start; /* Align content to top for apps */
+            text-align: center;
+            gap: 1rem; /* Space between items */
+        }
+
+        .os-icon-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #4299e1; /* Blue for buttons */
+            color: white;
+            padding: 1.5rem;
+            border-radius: 1rem; /* Rounded corners for buttons */
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            min-width: 120px; /* Minimum width for icons */
+            min-height: 120px; /* Minimum height for icons */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .os-icon-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading-indicator {
+            display: none; /* Hidden by default */
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Generic button styling for generated UI elements */
+        .generated-button {
+            background-color: #63b3ed; /* Lighter blue */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        .generated-button:hover {
+            background-color: #4299e1;
+        }
+
+        textarea, input[type="text"], input[type="email"] {
+            width: 90%;
+            max-width: 400px;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #4a5568;
+            background-color: #2d3748;
+            color: #e2e8f0;
+            resize: vertical; /* Allow vertical resize for textarea */
+        }
+        textarea::placeholder, input[type="text"]::placeholder, input[type="email"]::placeholder {
+            color: #a0aec0;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 1rem;
+        }
+        .gallery-thumbnail {
+            width: 100%;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+            position: relative;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .gallery-thumbnail img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0.5rem;
+        }
+        .gallery-thumbnail:hover {
+            transform: scale(1.05);
+        }
+
+        .email-list-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 500px;
+            background-color: #3b4555;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: left;
+        }
+        .email-list-item:hover {
+            background-color: #4a5568;
+        }
+        .email-list-item strong {
+            color: #cbd5e0;
+        }
+        .email-list-item span {
+            color: #a0aec0;
+            font-size: 0.85rem;
+        }
+        .email-detail {
+            width: 90%;
+            max-width: 500px;
+            text-align: left;
+            background-color: #3b4555;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+        }
+
+        /* Game App specific styles */
+        .game-status {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #a0e6ff;
+            margin-bottom: 1rem;
+        }
+        .game-choices button {
+            background-color: #63b3ed;
+            padding: 1rem 1.5rem;
+            font-size: 2rem;
+            border-radius: 0.75rem;
+            margin: 0.5rem;
+        }
+
+
+        /* Travel App specific styles */
+        .travel-result-box {
+            width: 90%;
+            max-width: 500px;
+            text-align: left;
+            background-color: #3b4555;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            min-height: 100px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        /* File System specific styles */
+        .filesystem-list {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+            max-width: 500px;
+            text-align: left;
+        }
+        .filesystem-item {
+            display: flex;
+            align-items: center;
+            background-color: #3b4555;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative; /* For delete button positioning */
+        }
+        .filesystem-item:hover {
+            background-color: #4a5568;
+        }
+        .filesystem-item .icon {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+        .file-content-box {
+            width: 90%;
+            max-width: 500px;
+            text-align: left;
+            background-color: #3b4555;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            min-height: 100px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            white-space: pre-wrap; /* Preserve whitespace and wrap text */
+        }
+
+        /* Google Assistant */
+        .assistant-response {
+            width: 90%;
+            max-width: 500px;
+            text-align: left;
+            background-color: #3b4555;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            min-height: 80px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        /* Play Store */
+        .app-list-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 500px;
+            background-color: #3b4555;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: left;
+        }
+        .app-list-item:hover {
+            background-color: #4a5568;
+        }
+        .app-list-item strong {
+            color: #cbd5e0;
+        }
+        .app-list-item span {
+            color: #a0aec0;
+            font-size: 0.85rem;
+        }
+        .app-detail {
+            width: 90%;
+            max-width: 500px;
+            text-align: left;
+            background-color: #3b4555;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        /* Google Maps */
+        .maps-results {
+            width: 90%;
+            max-width: 500px;
+            text-align: left;
+            background-color: #3b4555;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            min-height: 100px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        /* Custom Modal for Alerts */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+        }
+        .custom-modal-content {
+            background-color: #2d3748;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative; /* For dynamic content positioning */
+        }
+        /* Dynamic content area within modal */
+        #custom-modal-dynamic-content {
+            margin-top: 1rem;
+        }
+        .custom-modal-content button {
+            background-color: #4299e1;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            transition: background-color 0.2s;
+        }
+        .custom-modal-content button:hover {
+            background-color: #3182ce;
+        }
+
+        /* Camera live view video element */
+        #camera-video-feed {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 0.75rem;
+            background-color: #1a202c; /* Black background for video area */
+            border: 1px solid #4a5568;
+            transform: scaleX(-1); /* Mirror effect for selfie camera */
+        }
+
+        /* Travel App Table */
+        .flights-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .flights-table th, .flights-table td {
+            border: 1px solid #4a5568;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .flights-table th {
+            background-color: #4a5568;
+            font-weight: 600;
+        }
+        .flights-table tr:nth-child(even) {
+            background-color: #3b4555;
+        }
+        .flights-table tr:hover {
+            background-color: #4a5568;
+        }
+
+        /* Specific for email app tabs */
+        .email-tabs {
+            display: flex;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 1rem;
+            background-color: #4a5568;
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        .email-tabs button {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            background-color: transparent;
+            border-radius: 0;
+            margin-top: 0;
+            transition: background-color 0.2s;
+            font-weight: 600;
+            color: #cbd5e0;
+        }
+        .email-tabs button.active {
+            background-color: #63b3ed;
+            color: white;
+        }
+        .email-tabs button:hover:not(.active) {
+            background-color: #5a667b;
+        }
+
+        /* Sound Recorder specific */
+        #sound_recorder_audio_playback {
+            width: 90%;
+            max-width: 400px;
+            margin-top: 1rem;
+            display: none; /* Hidden until recording is available */
+        }
+        #sound_recorder_status {
+            font-weight: 600;
+            color: #a0aec0;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .os-container {
+                height: 90vh; /* Adjust height for smaller screens */
+                max-width: 95%; /* Adjust max width for smaller screens */
+            }
+            .os-icon-button {
+                min-width: 100px;
+                min-height: 100px;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="os-container" id="os-main-container">
+        <div class="os-header">
+            <span>Neural OS</span>
+            <span>🕒 <span id="time-display"></span></span>
+        </div>
+        <div class="os-content" id="os-content">
+            <!-- Content will be dynamically loaded here -->
+            <div class="loading-indicator" id="loading-indicator"></div>
+        </div>
+    </div>
+
+    <!-- Custom Modal Structure -->
+    <div id="custom-alert-modal" class="custom-modal-overlay">
+        <div class="custom-modal-content">
+            <p id="custom-alert-message" class="text-lg text-gray-200"></p>
+            <div id="custom-modal-dynamic-content" class="flex flex-col items-center gap-4">
+                <!-- Dynamic input and buttons will go here -->
+            </div>
+            <button id="custom-alert-ok-button" class="generated-button" style="display: none;">OK</button> <!-- Only for simple alerts -->
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // DOM Elements
+        const osMainContainer = document.getElementById('os-main-container');
+        const osContentDiv = document.getElementById('os-content');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const timeDisplay = document.getElementById('time-display');
+        const customAlertModal = document.getElementById('custom-alert-modal');
+        const customAlertMessage = document.getElementById('custom-alert-message');
+        const customAlertOkButton = document.getElementById('custom-alert-ok-button');
+        const customModalDynamicContent = document.getElementById('custom-modal-dynamic-content');
+
+        // Firebase Instances (initialized later)
+        let app;
+        let db;
+        let auth;
+        let currentUserId = 'anonymous'; // Default user ID
+
+        // Settings States
+        let isWifiOn = false;
+        let isMobileDataOn = false;
+
+        // --- Custom Alert/Prompt/Confirm Functions ---
+        function showCustomAlert(message) {
+            customAlertMessage.textContent = message;
+            customModalDynamicContent.innerHTML = '';
+            customAlertOkButton.style.display = 'block';
+            customAlertModal.style.display = 'flex';
+            return new Promise(resolve => {
+                customAlertOkButton.onclick = () => {
+                    customAlertModal.style.display = 'none';
+                    customAlertOkButton.style.display = 'none';
+                    resolve();
+                };
+            });
+        }
+
+        function promptWithCustomModal(message, defaultValue = '') {
+            return new Promise(resolve => {
+                customAlertMessage.innerHTML = `<p>${message}</p>`;
+                customModalDynamicContent.innerHTML = '';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = defaultValue;
+                input.className = 'w-full p-2 mb-4 rounded-md bg-gray-700 text-white border border-gray-600';
+                customModalDynamicContent.appendChild(input);
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'flex justify-center gap-4 w-full';
+                customModalDynamicContent.appendChild(buttonContainer);
+
+                const okButton = document.createElement('button');
+                okButton.textContent = 'OK';
+                okButton.className = 'generated-button mx-2 mt-0';
+
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.className = 'generated-button mx-2 mt-0 bg-red-600 hover:bg-red-700';
+
+                buttonContainer.appendChild(okButton);
+                buttonContainer.appendChild(cancelButton);
+
+                customAlertModal.style.display = 'flex';
+                input.focus();
+
+                okButton.onclick = () => {
+                    customAlertModal.style.display = 'none';
+                    customModalDynamicContent.innerHTML = '';
+                    resolve(input.value);
+                };
+                cancelButton.onclick = () => {
+                    customAlertModal.style.display = 'none';
+                    customModalDynamicContent.innerHTML = '';
+                    resolve(null);
+                };
+            });
+        }
+
+        function confirmWithCustomModal(message) {
+            return new Promise(resolve => {
+                customAlertMessage.innerHTML = `<p>${message}</p>`;
+                customModalDynamicContent.innerHTML = '';
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'flex justify-center gap-4 w-full';
+                customModalDynamicContent.appendChild(buttonContainer);
+
+                const yesButton = document.createElement('button');
+                yesButton.textContent = 'Yes';
+                yesButton.className = 'generated-button mx-2 mt-0';
+
+                const noButton = document.createElement('button');
+                noButton.textContent = 'No';
+                noButton.className = 'generated-button mx-2 mt-0 bg-red-600 hover:bg-red-700';
+
+                buttonContainer.appendChild(yesButton);
+                buttonContainer.appendChild(noButton);
+
+                customAlertModal.style.display = 'flex';
+
+                yesButton.onclick = () => {
+                    customAlertModal.style.display = 'none';
+                    customModalDynamicContent.innerHTML = '';
+                    resolve(true);
+                };
+                noButton.onclick = () => {
+                    customAlertModal.style.display = 'none';
+                    customModalDynamicContent.innerHTML = '';
+                    resolve(false);
+                };
+            });
+        }
+
+        // Update time every second
+        setInterval(() => {
+            const now = new Date();
+            timeDisplay.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }, 1000);
+
+
+        // --- UI Constitution (System Prompt for LLM) ---
+        const uiConstitution = `
+            You are a neural operating system, generating UI content in HTML.
+            Maintain a consistent, modern, clean aesthetic using Tailwind CSS classes.
+            Always use rounded corners for all elements.
+            Use Inter font family.
+            Provide clear calls to action.
+            For app icons, use simple, descriptive text.
+            When generating new screens, focus on usability and responsiveness.
+            Ensure interactive elements have 'data-interaction-id', 'data-interaction-type', and 'data-app-context' attributes.
+            If a button needs to retrieve value from an input, add 'data-value-from="{elementId}"'.
+            Use simple text or emojis for icons.
+        `;
+
+        // --- In-memory UI Graph for Statefulness (Cache) ---
+        const uiGraph = new Map();
+
+        // --- Interaction Trace for Contextual Awareness ---
+        const interactionTrace = [];
+        const MAX_TRACE_LENGTH = 5;
+
+        // --- Current App Context ---
+        let currentAppContext = 'home_screen';
+
+        // --- App Data (Initial State - will be loaded/overwritten by Firestore) ---
+        let galleryImages = [
+            'https://placehold.co/150x150/ff6f61/white?text=Beach',
+            'https://placehold.co/150x150/6a0572/white?text=Mountain',
+            'https://placehold.co/150x150/336b87/white?text=City',
+            'https://placehold.co/150x150/f8a559/white?text=Forest',
+            'https://placehold.co/150x150/4caf50/white?text=Lake',
+            'https://placehold.co/150x150/d32f2f/white?text=Desert'
+        ];
+
+        let emails = {
+            inbox: [
+                { id: 'email1', sender: 'Alice', subject: 'Meeting Tomorrow', body: 'Hi, just a reminder about our meeting tomorrow at 10 AM. See you there!' },
+                { id: 'email2', sender: 'Bob', subject: 'Project Update', body: 'The project is progressing well. We\'re on track for the deadline. More details in the attached report.' },
+                { id: 'email3', sender: 'Carol', subject: 'Your Order Confirmation', body: 'Thank you for your order! Your items will be shipped soon. Order #12345.' }
+            ],
+            sent: []
+        };
+        let currentEmailView = 'inbox';
+
+        let browserHistory = []; // Now managed by Firestore
+
+        let rpsGameResult = "";
+
+        // File System (initial state, will be overwritten by Firestore)
+        let fileSystem = {
+            'Documents': {
+                type: 'folder',
+                contents: {
+                    'meeting_notes.txt': { type: 'file', content: 'Q3 roadmap, budget finalization, team offsite ideas.' },
+                    'todo_list.txt': { type: 'file', content: '- Finish report\n- Call supplier\n- Plan weekend' },
+                    'notes.txt': {type: 'file', content: 'Your first note: Hello World!'} // Added for Notes app persistence
+                }
+            },
+            'Photos': {
+                type: 'folder',
+                contents: {
+                    'vacation_2024.jpg': { type: 'file', content: 'This is a simulated image file. In a real system, you\'d see the image.' },
+                    'profile_pic.png': { type: 'file', content: 'This is a simulated image file content.' }
+                }
+            },
+            'README.txt': { type: 'file', content: 'Welcome to your Neural OS File System!\n\nNavigate through folders and view text files.\nImages are simulated as text content here.\n\nEnjoy your dynamic OS experience!' }
+        };
+        let currentPath = [];
+
+        // Play Store Apps (static list)
+        const playStoreApps = [
+            { id: 'social_connect_app', name: 'SocialConnect', category: 'Social', rating: '4.5', downloads: '1M+' },
+            { id: 'task_master_app', name: 'TaskMaster', category: 'Productivity', rating: '4.8', downloads: '500K+' },
+            { id: 'retro_arcade_app', name: 'RetroArcade', category: 'Games', rating: '4.2', downloads: '2M+' },
+            { id: 'ai_sketcher_app', name: 'AI Sketcher', category: 'Creativity', rating: '4.7', downloads: '100K+' },
+            { id: 'sound_recorder_app', name: 'Sound Recorder', category: 'Utilities', rating: '4.0', downloads: '50K+'}
+        ];
+
+        // Installed Apps (initial state, will be loaded/overwritten by Firestore)
+        let installedApps = {
+            'browser_app': { icon: '🌐', name: 'Google Chrome', interactionId: 'open_browser_app' },
+            'email_app': { icon: '📧', name: 'Gmail', interactionId: 'open_email_app' },
+            'gallery_app': { icon: '🖼️', name: 'Photos', interactionId: 'open_gallery_app' },
+            'camera_app': { icon: '📷', name: 'Camera', interactionId: 'open_camera_app' },
+            'filesystem_app': { icon: '🗂️', name: 'Files', interactionId: 'open_filesystem_app' },
+            'settings_app': { icon: '⚙️', name: 'Settings', interactionId: 'open_settings_app' },
+            'google_assistant_app': { icon: '🗣️', name: 'Assistant', interactionId: 'open_google_assistant_app' },
+            'playstore_app': { icon: '🛍️', name: 'Play Store', interactionId: 'open_playstore_app' },
+            'google_maps_app': { icon: '🗺️', name: 'Maps', interactionId: 'open_google_maps_app' },
+            'notes_app': { icon: '📝', name: 'Notes', interactionId: 'open_notes_app' },
+            'calculator_app': { icon: '🧮', name: 'Calculator', interactionId: 'open_calculator_app' },
+            'weather_app': { icon: '☁️', name: 'Weather', interactionId: 'open_weather_app' },
+            'game_app': { icon: '🎮', name: 'Game', interactionId: 'open_game_app' },
+            'travel_app': { icon: '✈️', name: 'Travel', interactionId: 'open_travel_app' },
+            'sound_recorder_app': { icon: '🎤', name: 'Sound Recorder', interactionId: 'open_sound_recorder_app' }
+        };
+
+        let isLightMode = false;
+
+        // Sound Recorder state
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedAudioBlob = null; // Stores the latest recording
+        let recordingStatus = "Ready"; // "Ready", "Recording...", "Playing..."
+
+        // --- Firebase Functions for Persistence ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        async function initFirebaseAndLoadData() {
+            try {
+                console.log("Attempting Firebase initialization...");
+                console.log("__firebase_config raw:", typeof __firebase_config !== 'undefined' ? __firebase_config : 'undefined');
+                console.log("__initial_auth_token raw:", typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : 'undefined');
+
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                console.log("Parsed firebaseConfig:", firebaseConfig);
+
+                if (Object.keys(firebaseConfig).length === 0) {
+                    throw new Error("Firebase configuration is empty or invalid. Please ensure __firebase_config is properly provided by the environment.");
+                }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                console.log("Resolved initialAuthToken:", initialAuthToken);
+
+                let authSuccess = false;
+                if (initialAuthToken) {
+                    try {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with custom token.");
+                        authSuccess = true;
+                    } catch (error) {
+                        console.warn("Custom token sign-in failed, attempting anonymous sign-in:", error);
+                        // Fallback to anonymous sign-in
+                    }
+                }
+
+                if (!authSuccess) {
+                    try {
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously.");
+                        authSuccess = true;
+                    } catch (anonError) {
+                        console.error("Anonymous sign-in failed:", anonError);
+                        throw new Error("Failed to sign in to Firebase. Data persistence will not work.");
+                    }
+                }
+
+                currentUserId = auth.currentUser?.uid || crypto.randomUUID();
+                console.log("Current User ID:", currentUserId);
+
+                // Load installed apps
+                const installedAppsDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/installedApps/data`);
+                const installedAppsDocSnap = await getDoc(installedAppsDocRef);
+                if (installedAppsDocSnap.exists()) {
+                    const loadedApps = installedAppsDocSnap.data().apps;
+                    if (loadedApps) {
+                        installedApps = { ...installedApps, ...loadedApps };
+                    }
+                    console.log("Loaded installed apps from Firestore.");
+                } else {
+                    await setDoc(installedAppsDocRef, { apps: installedApps });
+                    console.log("Initialized installed apps in Firestore.");
+                }
+                console.log('Installed Apps state AFTER load/init:', installedApps);
+
+                // Load file system
+                const fileSystemDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/fileSystem/data`);
+                const fileSystemDocSnap = await getDoc(fileSystemDocRef);
+                if (fileSystemDocSnap.exists()) {
+                    const loadedFs = fileSystemDocSnap.data().data;
+                    if (loadedFs) {
+                        fileSystem = JSON.parse(loadedFs);
+                    }
+                    console.log("Loaded file system from Firestore.");
+                } else {
+                    await setDoc(fileSystemDocRef, { data: JSON.stringify(fileSystem) });
+                    console.log("Initialized file system in Firestore.");
+                }
+
+                // Load browser history
+                const browserHistoryCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/browserHistory`);
+                const q = query(browserHistoryCollectionRef, orderBy('timestamp', 'desc'), limit(5));
+                const querySnapshot = await getDocs(q);
+                browserHistory = querySnapshot.docs.map(doc => doc.data().url);
+                console.log("Loaded browser history from Firestore.");
+
+            } catch (error) {
+                console.error("Critical error during Firebase initialization or data loading:", error);
+                await showCustomAlert(`Critical Error: ${error.message}. Some features may not work. Try clearing browser data or refreshing.`);
+            }
+        }
+
+        async function saveInstalledAppsToFirestore() {
+            if (!db || !currentUserId) return;
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${currentUserId}/installedApps/data`);
+                await setDoc(docRef, { apps: installedApps });
+                console.log("Installed apps saved to Firestore.");
+            } catch (error) {
+                console.error("Error saving installed apps:", error);
+            }
+        }
+
+        async function saveFileSystemToFirestore() {
+            if (!db || !currentUserId) return;
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${currentUserId}/fileSystem/data`);
+                await setDoc(docRef, { data: JSON.stringify(fileSystem) });
+                console.log("File system saved to Firestore.");
+            } catch (error) {
+                console.error("Error saving file system:", error);
+            }
+        }
+
+        async function addBrowserHistoryEntry(url) {
+            if (!db || !currentUserId) return;
+            try {
+                const historyCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/browserHistory`);
+                await addDoc(historyCollectionRef, {
+                    url: url,
+                    timestamp: new Date()
+                });
+                console.log("Browser history updated in Firestore.");
+                const q = query(historyCollectionRef, orderBy('timestamp', 'desc'), limit(5));
+                const querySnapshot = await getDocs(q);
+                browserHistory = querySnapshot.docs.map(doc => doc.data().url);
+            } catch (error) {
+                console.error("Error saving browser history:", error);
+            }
+        }
+
+        // --- Simulated Backend Services (Conceptual Language Roles) ---
+
+        async function simulatePythonAIService(type, data) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            let promptForGemini = "";
+            let defaultResponse = "No AI response.";
+            let responseSchema = null;
+
+            if (type === 'generate_browser_content') {
+                promptForGemini = `Generate detailed and varied HTML page content (no <html>, <head>, <body> tags, just content like <h1>, <p>, <ul>, <strong>, <br>, <img> (use placeholder.co for images with dimensions and text)) summarizing information for a fictional webpage at the URL: ${data.url}. Make it look like a real, albeit simple, webpage.
+                - If the URL sounds like a news site (e.g., "news.com", "dailyherald.org"), add a main headline, a couple of short article summaries, and a small placeholder image like <img src="https://placehold.co/100x70/cccccc/white?text=NewsImage" class="rounded-md mr-2 inline-block">.
+                - If it sounds like a product page (e.g., "shop.com", "store.xyz"), add a product name, price, a brief description, and a placeholder product image like <img src="https://placehold.co/120x120/abcdef/white?text=Product" class="rounded-md mb-2">.
+                - If it sounds like a blog (e.g., "myblog.net", "devjournal.io"), add a blog post title, a paragraph of text, and maybe a relevant image.
+                - For general or unknown URLs, provide a generic summary with varying HTML elements. Ensure all text content is directly within the HTML.`;
+                defaultResponse = `<h1 class="text-xl font-bold mb-2">Simulated Page for ${data.url}</h1><p>This is where AI would generate dynamic web content. For example, a summary of news, product info, or a blog post.</p>`;
+            } else if (type === 'search_web') {
+                promptForGemini = `Generate a simplified HTML search results page (no <html>, <head>, <body> tags, just content like <h1>, <p>, <ul>, <a>, <strong>) for the query "${data.query}". Include 5-7 distinct, relevant search results. Each result should be wrapped in a div with classes "my-4 p-4 bg-gray-700 rounded-lg text-left text-lg". The title (an <a> tag) should have class "text-blue-400 hover:underline text-xl" and the snippet (a <p> tag) should have class "text-lg text-gray-400 whitespace-pre-wrap".
+                Crucially, ensure each snippet is a **multi-line, descriptive paragraph with explicit line breaks using <br> tags if necessary**, to fill the result box adequately and make it easy to read. Aim for 2-4 lines per snippet.`;
+                defaultResponse = `<h1 class="text-xl font-bold mb-2">Search Results for "${data.query}"</h1>
+                    <div class="my-4 p-4 bg-gray-700 rounded-lg text-left text-lg">
+                        <a href="#" class="text-blue-400 hover:underline text-xl" data-interaction-id="browse_url" data-interaction-type="link_click" data-value="simulated.com/default-search-result-1" data-app-context="browser_app"><strong>Simulated Search Result 1 Title</strong></a>
+                        <p class="text-lg text-gray-400 whitespace-pre-wrap">This is a default snippet for a simulated search result.<br>It provides a brief overview of the content on the linked page.<br>This text should ideally wrap to multiple lines to better fill the search result box.</p>
+                    </div>
+                    <div class="my-4 p-4 bg-gray-700 rounded-lg text-left text-lg">
+                        <a href="#" class="text-blue-400 hover:underline text-xl" data-interaction-id="browse_url" data-interaction-type="link_click" data-value="simulated.com/default-search-result-2" data-app-context="browser_app"><strong>Simulated Search Result 2 Title</strong></a>
+                        <p class="text-lg text-gray-400 whitespace-pre-wrap">Another default snippet for a simulated search result.<br>This one also gives a quick summary of what you'd find.<br>It should also be long enough to span multiple lines for better readability.</p>
+                    </div>`;
+            } else if (type === 'ask_assistant') {
+                promptForGemini = `Respond to the following user query as a helpful AI assistant in a concise manner: "${data.query}".`;
+                defaultResponse = `Assistant response to: "${data.query}".`;
+            } else if (type === 'get_app_description') {
+                promptForGemini = `Generate a brief, engaging app description for a mobile app named "${data.appName}" in the category "${data.appCategory}". Include its key features.`;
+                defaultResponse = `Description for ${data.appName}: A fantastic app in the ${data.appCategory} category. It has amazing features!`;
+            } else if (type === 'get_map_directions') {
+                promptForGemini = `Provide concise, simulated step-by-step directions from ${data.origin} to ${data.destination}. Include estimated time (e.g., 15 mins, 2 hours) and a couple of key steps (e.g., "Turn left at Oak Street", "Continue on Highway 101"). Format as plain text.`;
+                defaultResponse = `Simulated directions from ${data.origin} to ${data.destination}. Turn right at the next intersection, then straight for 5 miles. Estimated time: 15 mins.`;
+            } else if (type === 'get_weather_report') {
+                // Modified for dynamic weather report generation
+                promptForGemini = `Provide a concise, simulated current weather report for ${data.city}. Include temperature (e.g., 25°C), condition (e.g., Sunny, Cloudy, Rainy, Partly Cloudy, Humid), humidity (e.g., 60%), and wind speed (e.g., 10 km/h). Format it naturally as a short paragraph.`;
+                defaultResponse = `Simulated weather for ${data.city}: Currently 20°C, Partly Cloudy with 70% humidity and light winds at 8 km/h.`;
+            } else if (type === 'search_flights') {
+                promptForGemini = `Generate a JSON array of 3-5 simulated flight options from ${data.origin} to ${data.destination}. Each flight object should have: "airline" (string), "flightNumber" (string, e.g., "UA123"), "departureTime" (string, e.g., "10:30 AM"), "arrivalTime" (string, e.g., "1:45 PM"), "price" (string, e.g., "$250").`;
+                defaultResponse = JSON.stringify([
+                    {"airline": "Simulated Air", "flightNumber": "SA101", "departureTime": "09:00 AM", "arrivalTime": "11:00 AM", "price": "$150"},
+                    {"airline": "AI Airlines", "flightNumber": "AI202", "departureTime": "1:00 PM", "arrivalTime": "3:30 PM", "price": "$200"}
+                ]);
+                responseSchema = {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            "airline": { "type": "STRING" },
+                            "flightNumber": { "type": "STRING" },
+                            "departureTime": { "type": "STRING" },
+                            "arrivalTime": { "type": "STRING" },
+                            "price": { "type": "STRING" }
+                        }
+                    }
+                };
+            }
+            else {
+                console.warn("Python AI Service: Unknown request type.", type);
+                return "Python AI Service: Unknown request type.";
+            }
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: promptForGemini }] });
+                const payload = { contents: chatHistory };
+
+                if (responseSchema) {
+                    payload.generationConfig = {
+                        responseMimeType: "application/json",
+                        responseSchema: responseSchema
+                    };
+                }
+
+                const apiKey = "AIzaSyAMvnmGBg5nbr8Xt5UAHLZjL67cbqZGAqQ";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                let result;
+                try {
+                    const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`API call failed with status ${response.status}: ${errorBody}`);
+                    }
+                    result = await response.json();
+                } catch (fetchError) {
+                    console.error("Error fetching or parsing Gemini API response JSON:", fetchError);
+                    if (responseSchema) {
+                        try {
+                            return JSON.parse(defaultResponse);
+                        } catch (e) {
+                            console.error("Default structured response is invalid:", e);
+                            return "AI Service Error: Failed to get valid structured response.";
+                        }
+                    }
+                    return `AI Service Error: ${fetchError.message || "Network/Parsing Error"}. Using default.`;
+                }
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const textResponse = result.candidates[0].content.parts[0].text;
+                    if (responseSchema) {
+                        try {
+                            return JSON.parse(textResponse);
+                        } catch (e) {
+                            console.error("Failed to parse generated structured response:", textResponse, e);
+                            try {
+                                return JSON.parse(defaultResponse);
+                            } catch (e2) {
+                                console.error("Default structured response is also invalid:", e2);
+                                return "AI Service Error: Generated structured content was unparseable.";
+                            }
+                        }
+                    }
+                    return textResponse;
+                } else {
+                    console.error("Gemini API response structure unexpected or empty content:", result);
+                    if (responseSchema) {
+                        try {
+                            return JSON.parse(defaultResponse);
+                        } catch (e) {
+                            console.error("Default structured response is invalid on unexpected result:", e);
+                            return "AI Service Error: Unexpected structured response or bad default.";
+                        }
+                    }
+                    return defaultResponse;
+                }
+            } catch (error) {
+                console.error('Unhandled error in Gemini API call:', error);
+                if (responseSchema) {
+                    try {
+                        return JSON.parse(defaultResponse);
+                    } catch (e) {
+                        console.error("Unhandled error, default structured response invalid:", e);
+                        return "AI Service Error: Unhandled error and invalid structured default.";
+                    }
+                }
+                return `AI Service Error: ${error.message || "Unknown error"}. Using default.`;
+            }
+        }
+
+        async function simulateJavaAppManager(type, data) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            if (type === 'install_app') {
+                console.log(`[Java App Manager]: Installing ${data.appName}...`);
+                if (!installedApps[data.appId]) {
+                    installedApps[data.appId] = { icon: '📦', name: data.appName, interactionId: `open_${data.appId}` }; // Adjusted interactionId
+                    await saveInstalledAppsToFirestore();
+                }
+                return `Successfully installed ${data.appName}.`;
+            } else if (type === 'launch_app') {
+                console.log(`[Java App Manager]: Launching ${data.appName}...`);
+                return `Launched ${data.appName}.`;
+            }
+            return "[Java App Manager]: Unknown request.";
+        }
+
+        async function simulateGoNetworkService(type, data) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log(`[Go Network Service]: Handling ${type} for ${JSON.stringify(data)}`);
+            return `Network operation '${type}' handled.`;
+        }
+
+        async function simulateCppKernelService(type, data) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            console.log(`[C++ Kernel Service]: Executing ${type} for ${JSON.stringify(data)}`);
+
+            const getFileSystemItem = (path) => {
+                // Remove leading /root/ for internal traversal if present
+                const effectivePath = path.startsWith('/root/') ? path.substring(5) : path;
+                const pathParts = effectivePath.split('/').filter(p => p !== '');
+                let currentItem = fileSystem;
+                let parentItem = null;
+                let parentName = '';
+
+                for (let i = 0; i < pathParts.length; i++) {
+                    const part = pathParts[i];
+                    if (currentItem.contents && currentItem.contents[part]) {
+                        parentItem = currentItem;
+                        parentName = part;
+                        currentItem = currentItem.contents[part];
+                    } else {
+                        return { found: false };
+                    }
+                }
+                return { found: true, item: currentItem, parent: parentItem, name: pathParts[pathParts.length - 1], parentName: parentName };
+            };
+
+
+            if (type === 'read_file') {
+                const { found, item } = getFileSystemItem(data.path);
+                if (found && item.type === 'file') {
+                    return item.content;
+                }
+                return `Error: File or folder '${data.path}' not found.`;
+            } else if (type === 'create_file') {
+                const pathParts = data.path.split('/').filter(p => p !== '');
+                const filename = pathParts.pop();
+                const parentPath = `/root/${pathParts.slice(0, pathParts.length).join('/')}`;
+                const { found, item: parentDir } = getFileSystemItem(parentPath);
+
+
+                if (found && parentDir.type === 'folder') {
+                    if (!parentDir.contents) {
+                        parentDir.contents = {};
+                    }
+                    if (parentDir.contents[filename]) {
+                        return `Error: File or folder "${data.path}" already exists.`;
+                    }
+                    parentDir.contents[filename] = { type: 'file', content: data.content || '' };
+                    await saveFileSystemToFirestore();
+                    return `Simulated: File "${data.path}" created.`;
+                }
+                return `Error: Parent path for "${data.path}" not found or is not a folder.`;
+            } else if (type === 'edit_file') {
+                const { found, item } = getFileSystemItem(data.path);
+                if (found && item.type === 'file') {
+                    item.content = data.newContent;
+                    await saveFileSystemToFirestore();
+                    return `Simulated: File "${data.path}" updated.`;
+                }
+                return `Error: File "${data.path}" not found or is a folder.`;
+            } else if (type === 'delete_item') {
+                const { found, item, parent, name } = getFileSystemItem(data.path);
+                if (found && parent && parent.contents) {
+                    if (item.type === 'folder' && Object.keys(item.contents || {}).length > 0) {
+                        return `Error: Cannot delete non-empty folder "${data.path}".`;
+                    }
+                    delete parent.contents[name];
+                    await saveFileSystemToFirestore();
+                    return `Simulated: "${data.path}" deleted.`;
+                }
+                return `Error: Item "${data.path}" not found.`;
+            }
+            return `[C++ Kernel Service]: Operation '${type}' completed.`;
+        }
+
+
+        // --- Main Screen Generation Logic ---
+        async function generateScreen(interaction) {
+            currentAppContext = interaction.appContext;
+            let screenKey = `${interaction.id}_${currentAppContext}`;
+
+            if (interaction.dataImageIndex) screenKey += `_img_${interaction.dataImageIndex}`;
+            if (interaction.dataEmailId) screenKey += `_email_${interaction.dataEmailId}`;
+            if (interaction.dataCurrentImageIndex) screenKey += `_currentimg_${interaction.dataCurrentImageIndex}`;
+            if (interaction.id === 'get_weather_data' && interaction.value) screenKey += `_city_${interaction.value}`;
+            if (interaction.id === 'search_flights_action' && interaction.value) screenKey += `_flight_${interaction.value}`;
+            if (interaction.id === 'view_app_detail' && interaction.dataAppId) screenKey += `_app_${interaction.dataAppId}`;
+            if (interaction.id === 'view_file_content' && interaction.dataFilepath) screenKey += `_file_${interaction.dataFilepath}`;
+            if (interaction.id === 'ask_assistant_action' && interaction.value) screenKey += `_query_${interaction.value}`;
+            if (interaction.id === 'get_maps_directions' && interaction.value) screenKey += `_map_${interaction.value}`;
+            if (interaction.id === 'navigate_filesystem') screenKey += `_path_${currentPath.join('/')}`;
+            // These should not be cached
+            if (['play_rps', 'reset_rps_game', 'search_web_action', 'toggle_dark_mode', 'set_volume', 'set_brightness', 'toggle_wifi', 'toggle_mobile_data', 'start_recording', 'stop_recording', 'play_recording', 'save_note_action', 'calc_input', 'search_playstore_apps', 'install_app_action'].includes(interaction.id)) { // Added notes and calc to non-cached
+                // Do not cache these interactions as they involve state changes or dynamic outputs
+            } else if (uiGraph.has(screenKey)) {
+                console.log(`Serving cached screen for: ${screenKey}`);
+                osContentDiv.innerHTML = uiGraph.get(screenKey);
+                setupEventListeners();
+                return;
+            }
+
+
+            loadingIndicator.style.display = 'block';
+            osContentDiv.innerHTML = '';
+
+            const uiInteraction = {
+                id: interaction.id, type: interaction.type, value: interaction.value,
+                elementType: interaction.elementType, elementText: interaction.elementText,
+                appContext: interaction.appContext, timestamp: new Date().toISOString()
+            };
+
+            if (interaction.dataImageIndex) uiInteraction.dataImageIndex = interaction.dataImageIndex;
+            if (interaction.dataEmailId) uiInteraction.dataEmailId = interaction.dataEmailId;
+            if (interaction.dataCurrentImageIndex) uiInteraction.dataCurrentImageIndex = interaction.dataCurrentImageIndex;
+            if (interaction.dataAppId) uiInteraction.dataAppId = interaction.dataAppId;
+            if (interaction.dataFsAction) uiInteraction.dataFsAction = interaction.dataFsAction;
+            if (interaction.dataPathSegment) uiInteraction.dataPathSegment = interaction.dataPathSegment;
+            if (interaction.dataFilepath) uiInteraction.dataFilepath = interaction.dataFilepath;
+            if (interaction.dataPlayerChoice) uiInteraction.dataPlayerChoice = interaction.dataPlayerChoice;
+
+            let generatedHtml = '';
+            try {
+                if (interaction.id === 'open_browser_app') {
+                    const defaultUrl = "Neural OS.com";
+                    const browserContent = await simulatePythonAIService('generate_browser_content', { url: defaultUrl });
+                    generatedHtml = renderBrowserApp(defaultUrl, browserContent);
+                } else if (interaction.id === 'browse_url' || interaction.id === 'browse_url_from_history') {
+                    const urlToBrowse = interaction.value || "neuralos.com";
+                    if (urlToBrowse && urlToBrowse !== "about:blank" && !browserHistory.includes(urlToBrowse)) {
+                        await addBrowserHistoryEntry(urlToBrowse);
+                    }
+                    const browserContent = await simulatePythonAIService('generate_browser_content', { url: urlToBrowse });
+                    generatedHtml = renderBrowserApp(urlToBrowse, browserContent);
+                } else if (interaction.id === 'search_web_action') {
+                    const searchQuery = interaction.value;
+                    const searchResults = await simulatePythonAIService('search_web', { query: searchQuery });
+                    generatedHtml = renderBrowserApp('', searchResults, searchQuery);
+                } else if (interaction.id === 'view_browser_history') {
+                    generatedHtml = renderBrowserHistory();
+                }
+                else if (interaction.id === 'open_email_app' || interaction.id === 'back_to_inbox' || interaction.id === 'send_email_action' || interaction.id === 'delete_email' || interaction.id === 'show_inbox' || interaction.id === 'show_sent') {
+                    if (interaction.id === 'send_email_action') {
+                        const [to, subject, body] = interaction.value.split(',');
+                        const newEmailId = 'email' + Date.now();
+                        emails.sent.unshift({ id: newEmailId, sender: 'You', subject: `To: ${to} - ${subject}`, body: body });
+                        emails.inbox.unshift({ id: 'reply' + Date.now(), sender: to, subject: `Re: ${subject}`, body: `This is a simulated reply from ${to} to your email: "${body.substring(0, 50)}..."` });
+                        await showCustomAlert("Email Sent (Simulated)!");
+                        currentEmailView = 'inbox';
+                    } else if (interaction.id === 'delete_email') {
+                        const emailIdToDelete = interaction.dataEmailId;
+                        let foundAndDeleted = false;
+                        for (const folder in emails) {
+                            const initialLength = emails[folder].length;
+                            emails[folder] = emails[folder].filter(email => email.id !== emailIdToDelete);
+                            if (emails[folder].length < initialLength) {
+                                foundAndDeleted = true;
+                                break;
+                            }
+                        }
+                        if (foundAndDeleted) { await showCustomAlert("Email Deleted (Simulated)!"); }
+                    } else if (interaction.id === 'show_inbox') { currentEmailView = 'inbox'; }
+                    else if (interaction.id === 'show_sent') { currentEmailView = 'sent'; }
+                    generatedHtml = renderEmailApp();
+                } else if (interaction.id.startsWith('view_email_')) {
+                    const emailId = interaction.dataEmailId;
+                    let email = null;
+                    for (const folder in emails) {
+                        email = emails[folder].find(e => e.id === emailId);
+                        if (email) break;
+                    }
+                    generatedHtml = email ? renderEmailDetail(email) : `<p class="text-red-400">Email not found.</p>`;
+                } else if (interaction.id === 'reply_email') {
+                    const emailId = interaction.dataEmailId;
+                    let originalEmail = null;
+                    for (const folder in emails) {
+                        originalEmail = emails[folder].find(e => e.id === emailId);
+                        if (originalEmail) break;
+                    }
+                    generatedHtml = renderComposeEmail(originalEmail);
+                } else if (interaction.id === 'compose_email') {
+                    generatedHtml = renderComposeEmail();
+                }
+                else if (interaction.id === 'open_gallery_app' || interaction.id === 'back_to_gallery') {
+                    generatedHtml = renderGalleryApp();
+                } else if (interaction.id.startsWith('view_image_') || interaction.id === 'next_image') {
+                    const imageIndex = parseInt(interaction.dataImageIndex || interaction.dataCurrentImageIndex);
+                    const nextIndex = (imageIndex + 1) % galleryImages.length;
+                    const src = galleryImages[nextIndex];
+                    generatedHtml = renderImageView(src, nextIndex);
+                }
+                else if (interaction.id === 'open_camera_app') {
+                    generatedHtml = renderCameraApp();
+                } else if (interaction.id === 'take_photo_action') {
+                    const videoElement = document.getElementById('camera-video-feed');
+                    if (videoElement && videoElement.srcObject) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = videoElement.videoWidth;
+                        canvas.height = videoElement.videoHeight;
+                        const context = canvas.getContext('2d');
+                        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/png');
+
+                        galleryImages.unshift(dataUrl);
+                        if (galleryImages.length > 20) galleryImages.pop();
+
+                        await showCustomAlert("Photo Captured! (Added to Photos App, in-memory only)");
+                        generatedHtml = renderCameraApp();
+                    } else {
+                        await showCustomAlert("Camera stream not active. Please allow camera access.");
+                        generatedHtml = renderCameraApp();
+                    }
+                }
+                else if (interaction.id === 'open_filesystem_app') {
+                    currentPath = [];
+                    generatedHtml = renderFileSystemApp();
+                } else if (interaction.id === 'navigate_filesystem') {
+                    const newPathSegment = interaction.dataPathSegment;
+                    const action = interaction.dataFsAction;
+
+                    if (action === 'enter' && newPathSegment) { currentPath.push(newPathSegment); }
+                    else if (action === 'back' && currentPath.length > 0) { currentPath.pop(); }
+                    generatedHtml = renderFileSystemApp();
+                } else if (interaction.id === 'view_file_content') {
+                    const filePath = interaction.dataFilepath;
+                    const fileContent = await simulateCppKernelService('read_file', { path: filePath });
+                    generatedHtml = renderFileContent(filePath, fileContent);
+                } else if (interaction.id === 'create_file_action') {
+                    const filename = await promptWithCustomModal("Enter new filename (e.g., my_document.txt):");
+                    if (filename) {
+                         const fileContent = await promptWithCustomModal("Enter content for the new file:");
+                         const simulatedResponse = await simulateCppKernelService('create_file', { path: `/root/${currentPath.join('/')}/${filename}`, content: fileContent });
+                        await showCustomAlert(simulatedResponse);
+                    }
+                    generatedHtml = renderFileSystemApp();
+                } else if (interaction.id === 'edit_file_action') {
+                    const filePath = await promptWithCustomModal("Enter full path of file to edit (e.g., /root/Documents/meeting_notes.txt):");
+                    if (filePath) {
+                        const existingContent = await simulateCppKernelService('read_file', { path: filePath });
+                        if (!existingContent.startsWith('Error:')) {
+                            const newContent = await promptWithCustomModal(`Editing "${filePath}". Enter new content:`, existingContent);
+                            if (newContent !== null) {
+                                const simulatedResponse = await simulateCppKernelService('edit_file', { path: filePath, newContent: newContent });
+                                await showCustomAlert(simulatedResponse);
+                            } else { await showCustomAlert("File edit cancelled."); }
+                        } else { await showCustomAlert(existingContent); }
+                    }
+                    generatedHtml = renderFileSystemApp();
+                } else if (interaction.id === 'delete_file_action') {
+                    const itemToDeletePath = await promptWithCustomModal("Enter full path of file/folder to delete (e.g., /root/Documents/todo_list.txt):");
+                    if (itemToDeletePath) {
+                        const confirmDelete = await confirmWithCustomModal(`Are you sure you want to delete "${itemToDeletePath}"? This cannot be undone.`);
+                        if (confirmDelete) {
+                            const simulatedResponse = await simulateCppKernelService('delete_item', { path: itemToDeletePath });
+                            await showCustomAlert(simulatedResponse);
+                        } else { await showCustomAlert("Deletion cancelled."); }
+                    }
+                    generatedHtml = renderFileSystemApp();
+                }
+                else if (interaction.id === 'open_settings_app') { generatedHtml = renderSettingsApp(); }
+                else if (interaction.id === 'settings_display') { generatedHtml = renderSettingsApp('display'); }
+                else if (interaction.id === 'settings_sound') { generatedHtml = renderSettingsApp('sound'); }
+                else if (interaction.id === 'settings_network') { generatedHtml = renderSettingsApp('network'); }
+                else if (interaction.id === 'settings_battery') { generatedHtml = renderSettingsApp('battery'); }
+                else if (interaction.id === 'settings_privacy') { generatedHtml = renderSettingsApp('privacy'); }
+                else if (interaction.id === 'settings_about') { generatedHtml = renderSettingsApp('about'); }
+                else if (interaction.id === 'toggle_dark_mode') {
+                    isLightMode = !isLightMode;
+                    osMainContainer.classList.toggle('light-mode', isLightMode);
+                    generatedHtml = renderSettingsApp('display');
+                } else if (interaction.id === 'set_volume') {
+                    generatedHtml = renderSettingsApp('sound');
+                } else if (interaction.id === 'set_brightness') {
+                    generatedHtml = renderSettingsApp('display');
+                } else if (interaction.id === 'toggle_wifi') {
+                    isWifiOn = !isWifiOn;
+                    generatedHtml = renderSettingsApp('network');
+                } else if (interaction.id === 'toggle_mobile_data') {
+                    isMobileDataOn = !isMobileDataOn;
+                    generatedHtml = renderSettingsApp('network');
+                }
+                else if (interaction.id === 'open_google_assistant_app' || interaction.id === 'ask_assistant_action') {
+                    const query = interaction.value || "";
+                    const assistantResponse = interaction.id === 'ask_assistant_action' ?
+                        await simulatePythonAIService('ask_assistant', { query }) :
+                        "Hi, I'm your Google Assistant. How can I help you today?";
+                    generatedHtml = renderGoogleAssistant(query, assistantResponse);
+                }
+                else if (interaction.id === 'open_playstore_app' || interaction.id === 'search_playstore_apps') {
+                    const searchQuery = interaction.value || '';
+                    generatedHtml = renderPlayStoreApp(searchQuery);
+                }
+                else if (interaction.id === 'view_app_detail') {
+                    const appId = interaction.dataAppId;
+                    const app = playStoreApps.find(a => a.id === appId);
+                    if (app) {
+                        const appDescription = await simulatePythonAIService('get_app_description', { appName: app.name, appCategory: app.category });
+                        generatedHtml = renderPlayStoreAppDetail(app, appDescription);
+                    } else { generatedHtml = `<p class="text-red-400">App not found.</p>`; }
+                } else if (interaction.id === 'install_app_action') {
+                    const appIdToInstall = interaction.dataAppId;
+                    const appName = playStoreApps.find(app => app.id === appIdToInstall)?.name;
+                    await simulateJavaAppManager('install_app', { appName, appId: appIdToInstall });
+                    await showCustomAlert(`${appName} installed! It's now on your home screen.`);
+                    // After installation, re-render the app detail to show "Open" button
+                    const app = playStoreApps.find(a => a.id === appIdToInstall);
+                    const appDescription = await simulatePythonAIService('get_app_description', { appName: app.name, appCategory: app.category });
+                    generatedHtml = renderPlayStoreAppDetail(app, appDescription);
+                }
+                else if (interaction.id === 'open_google_maps_app' || interaction.id === 'get_maps_directions') {
+                    const values = interaction.value ? interaction.value.split(',') : [];
+                    const origin = values[0] ? values[0].trim() : "";
+                    const destination = values[1] ? values[1].trim() : "";
+                    let directions = "Enter origin and destination for directions.";
+                    let mapImageUrl = `https://placehold.co/400x250/333333/white?text=${encodeURIComponent(origin || "Origin")}+to+${encodeURIComponent(destination || "Destination")}`;
+
+                    if (interaction.id === 'get_maps_directions' && origin && destination) {
+                        directions = await simulatePythonAIService('get_map_directions', { origin, destination });
+                        mapImageUrl = `https://placehold.co/400x250/2d3748/e2e8f0?text=${encodeURIComponent(origin)}+to+${encodeURIComponent(destination)}`;
+                    }
+                    generatedHtml = renderGoogleMapsApp(origin, destination, directions, mapImageUrl);
+                }
+                else if (interaction.id === 'open_weather_app' || interaction.id === 'get_weather_data') {
+                    const city = interaction.value || "";
+                    const weatherReport = interaction.id === 'get_weather_data' && city ?
+                        await simulatePythonAIService('get_weather_report', { city }) :
+                        "Enter a city to get its weather report.";
+                    generatedHtml = renderWeatherApp(city, weatherReport);
+                }
+                else if (interaction.id === 'open_game_app') {
+                    rpsGameResult = "";
+                    generatedHtml = renderGameApp();
+                } else if (interaction.id === 'play_rps') {
+                    const playerChoice = interaction.dataPlayerChoice;
+                    const choices = ['Rock', 'Paper', 'Scissors'];
+                    const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+
+                    let result = "";
+                    if (playerChoice === computerChoice) { result = "It's a Draw!"; }
+                    else if ((playerChoice === 'Rock' && computerChoice === 'Scissors') || (playerChoice === 'Paper' && computerChoice === 'Rock') || (playerChoice === 'Scissors' && computerChoice === 'Paper')) {
+                        result = `You Win! (${playerChoice} vs ${computerChoice})`;
+                    } else { result = `You Lose! (${playerChoice} vs ${computerChoice})`; }
+                    rpsGameResult = `You chose ${playerChoice}, Computer chose ${computerChoice}. ${result}`;
+                    generatedHtml = renderGameApp();
+                } else if (interaction.id === 'reset_rps_game') {
+                    rpsGameResult = "";
+                    generatedHtml = renderGameApp();
+                }
+                else if (interaction.id === 'open_travel_app' || interaction.id === 'search_flights_action') {
+                    const values = interaction.value ? interaction.value.split(',') : [];
+                    const origin = values[0] ? values[0].trim() : "";
+                    const destination = values[1] ? values[1].trim() : "";
+                    let flightResults = [];
+
+                    if (interaction.id === 'search_flights_action' && origin && destination) {
+                         const rawFlights = await simulatePythonAIService('search_flights', { origin, destination });
+                         if (Array.isArray(rawFlights)) { flightResults = rawFlights; }
+                         else {
+                             console.error("Flight search did not return an array:", rawFlights);
+                             flightResults = [{ airline: "Error", flightNumber: "N/A", departureTime: "", arrivalTime: "", price: "Try again" }];
+                         }
+                    }
+                    generatedHtml = renderTravelApp(origin, destination, flightResults);
+                }
+                // Sound Recorder App
+                else if (interaction.id === 'open_sound_recorder_app') {
+                    generatedHtml = renderSoundRecorderApp();
+                } else if (interaction.id === 'start_recording') {
+                    await startRecording();
+                    generatedHtml = renderSoundRecorderApp();
+                } else if (interaction.id === 'stop_recording') {
+                    await stopRecording();
+                    generatedHtml = renderSoundRecorderApp();
+                } else if (interaction.id === 'play_recording') {
+                    playRecording();
+                    generatedHtml = renderSoundRecorderApp();
+                }
+                else if (interaction.id === 'open_notes_app') {
+                    const appName = installedApps['notes_app'].name;
+                    await simulateJavaAppManager('launch_app', { appName });
+                    const noteContent = await simulateCppKernelService('read_file', { path: '/root/Documents/notes.txt' });
+                    generatedHtml = renderNotesApp(noteContent.startsWith('Error:') ? '' : noteContent);
+                } else if (interaction.id === 'save_note_action') {
+                    const noteContent = interaction.value;
+                    const filePath = '/root/Documents/notes.txt';
+                    // Check if file exists, if not, create it first
+                    const existingContent = await simulateCppKernelService('read_file', { path: filePath });
+                    if (existingContent.startsWith('Error: File or folder')) {
+                        await simulateCppKernelService('create_file', { path: filePath, content: noteContent });
+                        await showCustomAlert("Note saved (new file created)!");
+                    } else {
+                        await simulateCppKernelService('edit_file', { path: filePath, newContent: noteContent });
+                        await showCustomAlert("Note saved!");
+                    }
+                    generatedHtml = renderNotesApp(noteContent); // Re-render with saved content
+                }
+                else if (interaction.id === 'open_calculator_app') {
+                    const appName = installedApps['calculator_app'].name;
+                    await simulateJavaAppManager('launch_app', { appName });
+                    generatedHtml = renderCalculatorApp();
+                }
+                else if (interaction.id.startsWith('open_') && interaction.id.endsWith('_app')) {
+                    const appId = interaction.id.replace('open_', ''); // Remove 'open_' to get raw app ID
+                    const appEntry = installedApps[appId];
+                    const appName = appEntry ? appEntry.name : 'Unknown App';
+                    console.log(`Attempting to launch app: ${appId}, Name: ${appName}, Full installedApps:`, installedApps);
+
+                    await simulateJavaAppManager('launch_app', { appName });
+                    // Determine the correct rendering function based on appId, allowing for more specific app launches
+                    let specificRenderFunction = null;
+                    if (appId === 'notes_app') {
+                        const noteContent = await simulateCppKernelService('read_file', { path: '/root/Documents/notes.txt' });
+                        generatedHtml = renderNotesApp(noteContent.startsWith('Error:') ? '' : noteContent);
+                    } else if (appId === 'calculator_app') {
+                        generatedHtml = renderCalculatorApp();
+                    } else if (appId === 'browser_app') {
+                        const defaultUrl = "neuralos.com";
+                        const browserContent = await simulatePythonAIService('generate_browser_content', { url: defaultUrl });
+                        generatedHtml = renderBrowserApp(defaultUrl, browserContent);
+                    } else if (appId === 'email_app') {
+                         currentEmailView = 'inbox'; // Reset email view to inbox on open
+                         generatedHtml = renderEmailApp();
+                    } else if (appId === 'gallery_app') {
+                         generatedHtml = renderGalleryApp();
+                    } else if (appId === 'camera_app') {
+                         generatedHtml = renderCameraApp();
+                    } else if (appId === 'filesystem_app') {
+                         currentPath = []; // Reset path on opening file system
+                         generatedHtml = renderFileSystemApp();
+                    } else if (appId === 'settings_app') {
+                         generatedHtml = renderSettingsApp();
+                    } else if (appId === 'google_assistant_app') {
+                         generatedHtml = renderGoogleAssistant("", "Hi, I'm your Google Assistant. How can I help you today?");
+                    } else if (appId === 'playstore_app') {
+                         generatedHtml = renderPlayStoreApp();
+                    } else if (appId === 'google_maps_app') {
+                         generatedHtml = renderGoogleMapsApp("", "", "Enter origin and destination for directions.", `https://placehold.co/400x250/333333/white?text=Map`);
+                    } else if (appId === 'weather_app') {
+                         generatedHtml = renderWeatherApp("", "Enter a city to get its weather report.");
+                    } else if (appId === 'game_app') {
+                         rpsGameResult = ""; // Reset game on open
+                         generatedHtml = renderGameApp();
+                    } else if (appId === 'travel_app') {
+                         generatedHtml = renderTravelApp("", "", []);
+                    } else if (appId === 'sound_recorder_app') {
+                         generatedHtml = renderSoundRecorderApp();
+                    }
+                    else {
+                        // Fallback for unhandled specific app renders
+                        generatedHtml = `<h2 class="text-3xl font-bold text-gray-300 mb-6">${appName}</h2><p>This is a placeholder for ${appName}.</p><button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="generic_app">Back to Home</button>`;
+                    }
+                }
+                else { generatedHtml = createHomeScreenHTML(); }
+
+                // Only cache if the interaction is not a volatile one
+                if (!['calc_input', 'browse_url', 'send_email_action', 'delete_email', 'get_weather_data',
+                      'browse_url_from_history', 'reply_email', 'play_rps', 'reset_rps_game',
+                      'search_flights_action', 'ask_assistant_action', 'view_app_detail',
+                      'install_app_action', 'get_maps_directions', 'view_file_content',
+                      'create_file_action', 'edit_file_action', 'delete_file_action',
+                      'take_photo_action', 'toggle_dark_mode', 'set_volume', 'set_brightness',
+                      'toggle_wifi', 'toggle_mobile_data', 'show_inbox', 'show_sent',
+                      'start_recording', 'stop_recording', 'play_recording', 'search_web_action',
+                      'save_note_action', 'search_playstore_apps', 'open_social_connect_app',
+                      'open_task_master_app', 'open_retro_arcade_app', 'open_ai_sketcher_app'
+                     ].includes(interaction.id)) { // Added notes and calc to non-cached
+                    uiGraph.set(screenKey, generatedHtml);
+                }
+
+
+            } catch (error) {
+                console.error('Error in generateScreen:', error);
+                generatedHtml = `<p class="text-red-400">An error occurred while loading this app: ${error.message}</p>`;
+            } finally {
+                loadingIndicator.style.display = 'none';
+                osContentDiv.innerHTML = generatedHtml;
+                setupEventListeners();
+                if (interaction.id === 'open_camera_app') { startCameraStream(); }
+                else { stopCameraStream(); }
+            }
+        }
+
+        // --- Render Functions for Each App ---
+
+        function renderNotesApp(content = "") {
+            const appName = installedApps['notes_app'].name; // Get name dynamically
+            return `
+                <h2 class="text-3xl font-bold text-blue-300 mb-6">${appName}</h2>
+                <textarea id="notepad_main_textarea" class="w-full max-w-md h-40 p-4 bg-gray-700 text-white rounded-lg shadow-inner mb-4" placeholder="Start typing your notes here...">${content}</textarea>
+                <div class="flex gap-4">
+                    <button class="generated-button" data-interaction-id="save_note_action" data-interaction-type="button_press" data-value-from="notepad_main_textarea" data-app-context="notes_app">Save Note</button>
+                    <button class="generated-button" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="notes_app">Back to Home</button>
+                </div>
+            `;
+        }
+
+        function renderCalculatorApp(currentValue = "0") {
+            const appName = installedApps['calculator_app'].name; // Get name dynamically
+            return `
+                <h2 class="text-3xl font-bold text-green-300 mb-6">${appName}</h2>
+                <input type="text" id="calc_display" class="w-full max-w-xs text-right text-2xl p-3 bg-gray-700 text-white rounded-lg shadow-inner mb-4" value="${currentValue}" readonly>
+                <div class="grid grid-cols-4 gap-2 w-full max-w-xs">
+                    ${['7', '8', '9', '/', '4', '5', '6', '*', '1', '2', '3', '-', 'C', '0', '.', '='].map(char => `
+                        <button class="generated-button w-full h-12 flex items-center justify-center text-xl" data-interaction-id="calc_${char === '=' ? 'equals' : (char === '/' ? 'divide' : (char === '*' ? 'multiply' : (char === '-' ? 'subtract' : (char === '+' ? 'add' : (char === 'C' ? 'clear' : char)))))}" data-interaction-type="calc_input" data-value="${char}" data-app-context="calculator_app">${char}</button>
+                    `).join('')}
+                    <button class="generated-button col-span-4" data-interaction-id="calc_add" data-interaction-type="calc_input" data-value="+" data-app-context="calculator_app">+</button>
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="calculator_app">Back to Home</button>
+            `;
+        }
+
+        function renderSettingsApp(currentSettingSection) {
+            let content = '';
+            const currentBrightness = document.getElementById('brightness_slider')?.value || '70';
+            const currentVolume = document.getElementById('volume_slider')?.value || '50';
+
+            if (currentSettingSection === 'display') {
+                 content = `
+                    <h2 class="text-3xl font-bold text-purple-300 mb-6">Display Settings</h2>
+                    <p class="text-lg text-gray-300 mb-4">Adjust simulated screen preferences.</p>
+                    <div class="flex flex-col w-full max-w-md text-left">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Dark Mode</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="dark_mode_toggle" class="sr-only peer" ${!isLightMode ? 'checked' : ''} data-interaction-id="toggle_dark_mode" data-interaction-type="toggle" data-app-context="settings_app">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Brightness</span>
+                            <input type="range" min="0" max="100" value="${currentBrightness}" class="w-2/3" id="brightness_slider" data-interaction-id="set_brightness" data-interaction-type="slider_change" data-value-from="brightness_slider" data-app-context="settings_app">
+                            <span id="brightness_value">${currentBrightness}%</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2">Note: These controls affect the simulated OS only, not your device's hardware.</p>
+                    </div>
+                    <button class="generated-button mt-6" data-interaction-id="open_settings_app" data-interaction-type="button_press" data-app-context="settings_app">Back to Settings</button>
+                `;
+            } else if (currentSettingSection === 'sound') {
+                 content = `
+                    <h2 class="text-3xl font-bold text-purple-300 mb-6">Sound Settings</h2>
+                    <p class="text-lg text-gray-300 mb-4">Manage simulated audio outputs.</p>
+                    <div class="flex flex-col w-full max-w-md text-left">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Volume</span>
+                            <input type="range" min="0" max="100" value="${currentVolume}" class="w-2/3" id="volume_slider" data-interaction-id="set_volume" data-interaction-type="slider_change" data-value-from="volume_slider" data-app-context="settings_app">
+                            <span id="volume_value">${currentVolume}%</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Ringtone</span>
+                            <span>Default</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2">Note: These controls affect the simulated OS only, not your device's hardware.</p>
+                    </div>
+                    <button class="generated-button mt-6" data-interaction-id="open_settings_app" data-interaction-type="button_press" data-app-context="settings_app">Back to Settings</button>
+                `;
+            } else if (currentSettingSection === 'network') {
+                 content = `
+                    <h2 class="text-3xl font-bold text-purple-300 mb-6">Network & Internet</h2>
+                    <p class="text-lg text-gray-300 mb-4">Manage simulated network connections.</p>
+                    <div class="flex flex-col w-full max-w-md text-left">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Wi-Fi</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="wifi_toggle" class="sr-only peer" ${isWifiOn ? 'checked' : ''} data-interaction-id="toggle_wifi" data-interaction-type="toggle" data-app-context="settings_app">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                            <span id="wifi_status" class="text-sm ml-2">${isWifiOn ? 'Connected' : 'Disconnected'}</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Mobile Data</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="mobile_data_toggle" class="sr-only peer" ${isMobileDataOn ? 'checked' : ''} data-interaction-id="toggle_mobile_data" data-interaction-type="toggle" data-app-context="settings_app">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                            <span id="mobile_data_status" class="text-sm ml-2">${isMobileDataOn ? 'Connected' : 'Disconnected'}</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2">Note: These controls affect the simulated OS only, not your device's hardware.</p>
+                    </div>
+                    <button class="generated-button mt-6" data-interaction-id="open_settings_app" data-interaction-type="button_press" data-app-context="settings_app">Back to Settings</button>
+                `;
+            } else if (currentSettingSection === 'battery') {
+                 content = `
+                    <h2 class="text-3xl font-bold text-purple-300 mb-6">Battery Settings</h2>
+                    <p class="text-lg text-gray-300 mb-4">Monitor simulated battery usage.</p>
+                    <div class="flex flex-col w-full max-w-md text-left">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Battery Level</span>
+                            <span>78%</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Power Saving Mode</span>
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 rounded">
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2">Note: These controls affect the simulated OS only, not your device's hardware.</p>
+                    </div>
+                    <button class="generated-button mt-6" data-interaction-id="open_settings_app" data-interaction-type="button_press" data-app-context="settings_app">Back to Settings</button>
+                `;
+            } else if (currentSettingSection === 'privacy') {
+                content = `
+                    <h2 class="text-3xl font-bold text-purple-300 mb-6">Privacy & Security</h2>
+                    <p class="text-lg text-gray-300 mb-4">Manage simulated privacy settings.</p>
+                    <div class="flex flex-col w-full max-w-md text-left">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>Location Services</span>
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 rounded" checked>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg mb-2">
+                            <span>App Permissions</span>
+                            <span>Manage ></span>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2">Note: These controls affect the simulated OS only, not your device's hardware.</p>
+                    </div>
+                    <button class="generated-button mt-6" data-interaction-id="open_settings_app" data-interaction-type="button_press" data-app-context="settings_app">Back to Settings</button>
+                `;
+            } else if (currentSettingSection === 'about') {
+                content = `
+                    <h2 class="text-3xl font-bold text-purple-300 mb-6">About Device</h2>
+                    <p class="text-lg text-gray-300 mb-4">Information about your Neural OS.</p>
+                    <div class="flex flex-col w-full max-w-md text-left">
+                        <p class="bg-gray-700 p-3 rounded-lg mb-2"><strong>OS Version:</strong> NeuralOS 1.0 (Simulated)</p>
+                        <p class="bg-gray-700 p-3 rounded-lg mb-2"><strong>Build Date:</strong> June 27, 2025</p>
+                        <p class="bg-gray-700 p-3 rounded-lg mb-2"><strong>Processor:</strong> NeuralCore AI</p>
+                    </div>
+                    <button class="generated-button mt-6" data-interaction-id="open_settings_app" data-interaction-type="button_press" data-app-context="settings_app">Back to Settings</button>
+                `;
+            }
+            else {
+                content = `
+                    <h2 class="text-3xl font-bold text-purple-300 mb-6">Settings App</h2>
+                    <div class="flex flex-col w-full max-w-md mt-4 text-left">
+                        <button class="generated-button text-base mb-2" data-interaction-id="settings_display" data-interaction-type="button_press" data-app-context="settings_app">Display & Brightness</button>
+                        <button class="generated-button text-base mb-2" data-interaction-id="settings_sound" data-interaction-type="button_press" data-app-context="settings_app">Sound & Haptics</button>
+                        <button class="generated-button text-base mb-2" data-interaction-id="settings_network" data-interaction-type="button_press" data-app-context="settings_app">Network & Internet</button>
+                        <button class="generated-button text-base mb-2" data-interaction-id="settings_battery" data-interaction-type="button_press" data-app-context="settings_app">Battery</button>
+                        <button class="generated-button text-base mb-2" data-interaction-id="settings_privacy" data-interaction-type="button_press" data-app-context="settings_app">Privacy & Security</button>
+                        <button class="generated-button text-base mb-2" data-interaction-id="settings_about" data-interaction-type="button_press" data-app-context="settings_app">About Device</button>
+                    </div>
+                    <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="settings_app">Back to Home</button>
+                `;
+            }
+            return content;
+        }
+
+        function renderBrowserApp(url, content, searchQuery = '') {
+            return `
+                <h2 class="text-3xl font-bold text-yellow-300 mb-6">Google Chrome</h2>
+                <div class="flex w-full max-w-md gap-2 mb-2">
+                    <input type="text" id="browser_url_input" class="flex-grow p-3 rounded-lg" value="${url}" placeholder="Enter URL (e.g., example.com)">
+                    <button class="generated-button mt-0" data-interaction-id="browse_url" data-interaction-type="button_press" data-value-from="browser_url_input" data-app-context="browser_app">Go</button>
+                </div>
+                <div class="flex w-full max-w-md gap-2 mb-4">
+                    <input type="text" id="browser_search_input" class="flex-grow p-3 rounded-lg" value="${searchQuery}" placeholder="Search Google...">
+                    <button class="generated-button mt-0" data-interaction-id="search_web_action" data-interaction-type="button_press" data-value-from="browser_search_input" data-app-context="browser_app">Search</button>
+                </div>
+                <button class="generated-button mb-4" data-interaction-id="view_browser_history" data-interaction-type="button_press" data-app-context="browser_app">View History</button>
+                <div id="browser_content" class="w-full max-w-md h-96 bg-gray-700 rounded-lg p-4 overflow-auto text-left text-gray-200">
+                    <p class="text-sm text-gray-400 mb-2">
+                        Note: This is a simulated browser. It uses AI to generate content and cannot load external websites.
+                    </p>
+                    ${content}
+                </div>
+                <div class="flex gap-4 mt-6">
+                    <button class="generated-button" data-interaction-id="back_to_browser_home" data-interaction-type="button_press" data-app-context="browser_app">Back</button>
+                    <button class="generated-button" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="browser_app">Back to Home</button>
+                </div>
+            `;
+        }
+
+        function renderBrowserHistory() {
+            return `
+                <h2 class="text-3xl font-bold text-yellow-300 mb-6">Browser History</h2>
+                <div class="w-full max-w-md overflow-y-auto max-h-64 bg-gray-700 rounded-lg p-4 text-left">
+                    ${browserHistory.length > 0 ? browserHistory.map(url => `
+                        <p class="mb-2">
+                            <a href="#" class="text-blue-400 hover:underline" data-interaction-id="browse_url_from_history" data-interaction-type="link_click" data-value="${url}" data-app-context="browser_app">
+                                ${url}
+                            </a>
+                        </p>
+                    `).join('') : `<p class="text-gray-400">No browsing history yet.</p>`}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="open_browser_app" data-interaction-type="button_press" data-app-context="browser_app">Back to Browser</button>
+            `;
+        }
+
+
+        function renderGalleryApp() {
+            return `
+                <h2 class="text-3xl font-bold text-red-300 mb-6">Photos App</h2>
+                <div class="gallery-grid">
+                    ${galleryImages.map((src, index) => `
+                        <div class="gallery-thumbnail" data-interaction-id="view_image_${index}" data-interaction-type="image_click" data-image-index="${index}" data-app-context="gallery_app">
+                            <img src="${src}" alt="Image ${index + 1}">
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="gallery_app">Back to Home</button>
+            `;
+        }
+
+        function renderImageView(src, currentIndex) {
+            return `
+                <h2 class="text-3xl font-bold text-red-300 mb-6">Image View</h2>
+                <img src="${src}" alt="Full Image" class="max-w-full max-h-80 rounded-lg shadow-lg mb-6">
+                <div class="flex gap-4">
+                    <button class="generated-button" data-interaction-id="back_to_gallery" data-interaction-type="button_press" data-app-context="gallery_app">Back to Photos</button>
+                    <button class="generated-button" data-interaction-id="next_image" data-interaction-type="button_press" data-current-image-index="${currentIndex}" data-app-context="gallery_app">Next</button>
+                </div>
+            `;
+        }
+
+        let cameraStream = null;
+
+        async function startCameraStream() {
+            try {
+                const video = document.getElementById('camera-video-feed');
+                if (video && !cameraStream) {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = cameraStream;
+                    video.play();
+                }
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                showCustomAlert("Camera access denied or not available. Please ensure camera permissions are granted.");
+            }
+        }
+
+        function stopCameraStream() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        function renderCameraApp() {
+            return `
+                <h2 class="text-3xl font-bold text-gray-300 mb-6">Camera App</h2>
+                <video id="camera-video-feed" class="w-full max-w-md h-64 bg-gray-700 flex items-center justify-center rounded-lg text-gray-400 text-xl" autoplay playsinline></video>
+                <p class="text-sm mt-4 text-center text-gray-400">
+                    (Requires browser camera permission)
+                </p>
+                <button class="generated-button mt-6" data-interaction-id="take_photo_action" data-interaction-type="button_press" data-app-context="camera_app">Take Photo</button>
+                <button class="generated-button mt-2" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="camera_app">Back to Home</button>
+            `;
+        }
+
+        function renderEmailApp() {
+            const emailsToDisplay = currentEmailView === 'inbox' ? emails.inbox : emails.sent;
+            return `
+                <h2 class="text-3xl font-bold text-cyan-300 mb-6">Gmail</h2>
+                <button class="generated-button mb-4" data-interaction-id="compose_email" data-interaction-type="button_press" data-app-context="email_app">Compose Email</button>
+                <div class="email-tabs">
+                    <button class="${currentEmailView === 'inbox' ? 'active' : ''}" data-interaction-id="show_inbox" data-interaction-type="button_press" data-app-context="email_app">Inbox</button>
+                    <button class="${currentEmailView === 'sent' ? 'active' : ''}" data-interaction-id="show_sent" data-interaction-type="button_press" data-app-context="email_app">Sent</button>
+                </div>
+                <div class="w-full max-w-md overflow-y-auto max-h-64">
+                    ${emailsToDisplay.length > 0 ? emailsToDisplay.map(email => `
+                        <div class="email-list-item" data-interaction-id="view_email_${email.id}" data-interaction-type="email_click" data-email-id="${email.id}" data-app-context="email_app">
+                            <strong>From: ${email.sender}</strong>
+                            <span>Subject: ${email.subject}</span>
+                        </div>
+                    `).join('') : `<p class="text-gray-400">No emails in ${currentEmailView}.</p>`}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="email_app">Back to Home</button>
+            `;
+        }
+
+        function renderEmailDetail(email) {
+            return `
+                <h2 class="text-3xl font-bold text-cyan-300 mb-6">Email Detail</h2>
+                <div class="email-detail">
+                    <p class="mb-2"><strong>From:</strong> ${email.sender}</p>
+                    <p class="mb-2"><strong>Subject:</strong> ${email.subject}</p>
+                    <hr class="border-gray-600 my-4">
+                    <p>${email.body}</p>
+                </div>
+                <div class="flex gap-4 mt-6">
+                    <button class="generated-button" data-interaction-id="reply_email" data-interaction-type="button_press" data-email-id="${email.id}" data-app-context="email_app">Reply</button>
+                    <button class="generated-button" data-interaction-id="delete_email" data-interaction-type="button_press" data-email-id="${email.id}" data-app-context="email_app">Delete</button>
+                    <button class="generated-button" data-interaction-id="back_to_inbox" data-interaction-type="button_press" data-app-context="email_app">Back to Inbox</button>
+                </div>
+            `;
+        }
+
+        function renderComposeEmail(originalEmail = null) {
+            const to = originalEmail ? originalEmail.sender : '';
+            const subject = originalEmail ? `Re: ${originalEmail.subject}` : '';
+            return `
+                <h2 class="text-3xl font-bold text-cyan-300 mb-6">Compose Email</h2>
+                <input type="email" id="email_to" class="w-full max-w-md p-3 mb-2 rounded-lg" value="${to}" placeholder="To:">
+                <input type="text" id="email_subject" class="w-full max-w-md p-3 mb-2 rounded-lg" value="${subject}" placeholder="Subject:">
+                <textarea id="email_body" class="w-full max-w-md h-40 p-3 mb-4 bg-gray-700 text-white rounded-lg shadow-inner" placeholder="Body:"></textarea>
+                <div class="flex gap-4">
+                    <button class="generated-button" data-interaction-id="send_email_action" data-interaction-type="button_press" data-value-from="email_to,email_subject,email_body" data-app-context="email_app">Send</button>
+                    <button class="generated-button" data-interaction-id="back_to_inbox" data-interaction-type="button_press" data-app-context="email_app">Cancel</button>
+                </div>
+            `;
+        }
+
+        function renderFileSystemApp() {
+            let currentDirPointer = fileSystem;
+            let currentPathString = '';
+            for (const segment of currentPath) {
+                if (currentDirPointer.contents && currentDirPointer.contents[segment] && currentDirPointer.contents[segment].type === 'folder') {
+                    currentDirPointer = currentDirPointer.contents[segment];
+                    currentPathString += `/${segment}`;
+                } else {
+                    currentPath = [];
+                    currentDirPointer = fileSystem;
+                    currentPathString = '';
+                    showCustomAlert("Invalid path, reset to root. (Data is persistent)");
+                    break;
+                }
+            }
+
+            const items = currentDirPointer.contents ? Object.entries(currentDirPointer.contents).map(([name, item]) => `
+                <li class="filesystem-item" data-interaction-id="${item.type === 'folder' ? 'navigate_filesystem' : 'view_file_content'}"
+                    data-fs-action="${item.type === 'folder' ? 'enter' : 'view'}"
+                    data-path-segment="${item.type === 'folder' ? name : ''}"
+                    data-filepath="${item.type === 'file' ? `/root${currentPathString}/${name}` : ''}"
+                    data-app-context="filesystem_app">
+                    <span class="icon">${item.type === 'folder' ? '📁' : '📄'}</span> ${name}
+                    <button class="text-sm px-2 py-1 ml-auto bg-red-600 rounded-md hover:bg-red-700" data-interaction-id="delete_file_action" data-filepath="/root${currentPathString}/${name}" data-app-context="filesystem_app">🗑️</button>
+                </li>
+            `).join('') : '<p class="text-gray-400">Folder is empty.</p>';
+
+            return `
+                <h2 class="text-3xl font-bold text-lime-300 mb-6">File System</h2>
+                <p class="text-sm text-gray-400 mb-4">Current Path: /root${currentPathString}</p>
+                <ul class="filesystem-list">
+                    ${currentPath.length > 0 ? `
+                        <li class="filesystem-item" data-interaction-id="navigate_filesystem" data-fs-action="back" data-app-context="filesystem_app">
+                            <span class="icon">⬆️</span> .. (Back)
+                        </li>
+                    ` : ''}
+                    ${items}
+                </ul>
+                <div class="flex flex-wrap justify-center gap-4 mt-6">
+                    <button class="generated-button" data-interaction-id="create_file_action" data-interaction-type="button_press" data-app-context="filesystem_app">Create New File</button>
+                    <button class="generated-button" data-interaction-id="edit_file_action" data-interaction-type="button_press" data-app-context="filesystem_app">Edit File</button>
+                </div>
+                <p class="text-sm text-gray-400 mt-4">(File changes are persistent using Firestore.)</p>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="filesystem_app">Back to Home</button>
+            `;
+        }
+
+        function renderFileContent(filePath, content) {
+            return `
+                <h2 class="text-3xl font-bold text-lime-300 mb-6">File Content</h2>
+                <p class="text-md text-gray-400 mb-4">File: ${filePath}</p>
+                <div class="file-content-box">
+                    ${content}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="open_filesystem_app" data-interaction-type="button_press" data-app-context="filesystem_app">Back to File System</button>
+            `;
+        }
+
+        function renderGoogleAssistant(query, response) {
+            return `
+                <h2 class="text-3xl font-bold text-gray-300 mb-6">Google Assistant</h2>
+                <input type="text" id="assistant_query_input" class="w-full max-w-md p-3 mb-4 rounded-lg" value="${query}" placeholder="Ask me anything...">
+                <button class="generated-button" data-interaction-id="ask_assistant_action" data-interaction-type="button_press" data-value-from="assistant_query_input" data-app-context="google_assistant_app">Ask</button>
+                <div id="assistant_response_display" class="assistant-response text-gray-300">
+                    ${response.replace(/\n/g, '<br>')}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="google_assistant_app">Back to Home</button>
+            `;
+        }
+
+        function renderPlayStoreApp(searchQuery = '') {
+            const filteredApps = playStoreApps.filter(app =>
+                app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                app.category.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+
+            return `
+                <h2 class="text-3xl font-bold text-emerald-300 mb-6">Play Store</h2>
+                <input type="text" id="playstore_search_input" class="w-full max-w-md p-3 mb-4 rounded-lg" value="${searchQuery}" placeholder="Search apps...">
+                <button class="generated-button mb-4" data-interaction-id="search_playstore_apps" data-interaction-type="button_press" data-value-from="playstore_search_input" data-app-context="playstore_app">Search</button>
+                <div class="w-full max-w-md overflow-y-auto max-h-64">
+                    ${filteredApps.length > 0 ? filteredApps.map(app => `
+                        <div class="app-list-item" data-interaction-id="view_app_detail" data-interaction-type="app_click" data-app-id="${app.id}" data-app-context="playstore_app">
+                            <strong>${app.name}</strong>
+                            <span>Category: ${app.category} | Rating: ${app.rating} | Downloads: ${app.downloads}</span>
+                        </div>
+                    `).join('') : `<p class="text-gray-400">No apps found matching "${searchQuery}".</p>`}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="playstore_app">Back to Home</button>
+            `;
+        }
+
+        function renderPlayStoreAppDetail(app, description) {
+            const isInstalled = !!installedApps[app.id];
+            const buttonText = isInstalled ? 'Open' : 'Install';
+            const buttonInteractionId = isInstalled ? `open_${app.id}` : 'install_app_action';
+            // If already installed, open button should launch the app.
+            // If not installed, install button should trigger installation action.
+            const buttonAttributes = isInstalled ? `data-interaction-id="${buttonInteractionId}" data-interaction-type="button_press" data-app-context="${app.id}"` : `data-interaction-id="${buttonInteractionId}" data-interaction-type="button_press" data-app-id="${app.id}" data-app-context="playstore_app"`;
+
+            return `
+                <h2 class="text-3xl font-bold text-emerald-300 mb-6">${app.name}</h2>
+                <div class="app-detail">
+                    <p class="mb-2"><strong>Category:</strong> ${app.category}</p>
+                    <p class="mb-2"><strong>Rating:</strong> ${app.rating} ⭐</p>
+                    <p class="mb-2"><strong>Downloads:</strong> ${app.downloads}</p>
+                    <hr class="border-gray-600 my-4">
+                    <p>${description.replace(/\n/g, '<br>')}</p>
+                </div>
+                <div class="flex gap-4 mt-6">
+                    <button class="generated-button" ${buttonAttributes}>${buttonText}</button>
+                    <button class="generated-button" data-interaction-id="open_playstore_app" data-interaction-type="button_press" data-app-context="playstore_app">Back to Store</button>
+                </div>
+            `;
+        }
+
+        function renderGoogleMapsApp(origin, destination, directionsContent, mapImageUrl) {
+            return `
+                <h2 class="text-3xl font-bold text-red-400 mb-6">Google Maps</h2>
+                <p class="text-lg text-gray-300 mb-4">Get AI-Generated Directions (Simulated)</p>
+                <div class="w-full max-w-md bg-gray-800 rounded-lg overflow-hidden mb-4">
+                    <img src="${mapImageUrl}" alt="Map" class="w-full h-auto object-cover">
+                </div>
+                <input type="text" id="maps_origin_input" class="w-full max-w-md p-3 mb-2 rounded-lg" value="${origin}" placeholder="Origin">
+                <input type="text" id="maps_destination_input" class="w-full max-w-md p-3 mb-4 rounded-lg" value="${destination}" placeholder="Destination">
+                <button class="generated-button" data-interaction-id="get_maps_directions" data-interaction-type="button_press" data-value-from="maps_origin_input,maps_destination_input" data-app-context="google_maps_app">Get Directions</button>
+                <div id="maps_results_display" class="maps-results bg-gray-700 text-gray-300">
+                    ${directionsContent.replace(/\n/g, '<br>')}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="google_maps_app">Back to Home</button>
+            `;
+        }
+
+        function renderWeatherApp(city, weatherReport) {
+            return `
+                <h2 class="text-3xl font-bold text-amber-300 mb-6">Weather App</h2>
+                <p class="text-lg text-gray-300 mb-4">Get AI-Generated Weather Report (Simulated)</p>
+                <input type="text" id="city_input" class="w-full max-w-md p-3 mb-4 rounded-lg" value="${city}" placeholder="Enter city name (e.g., London)">
+                <button class="generated-button" data-interaction-id="get_weather_data" data-interaction-type="button_press" data-value-from="city_input" data-app-context="weather_app">Get Weather</button>
+                <div id="weather_display" class="w-full max-w-md mt-6 p-4 bg-gray-700 rounded-lg text-gray-300 text-left">
+                    ${weatherReport.replace(/\n/g, '<br>')}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="weather_app">Back to Home</button>
+            `;
+        }
+
+        function renderGameApp() {
+            const choices = ['Rock', 'Paper', 'Scissors'];
+            const buttons = choices.map(choice => `
+                <button class="generated-button" data-interaction-id="play_rps" data-interaction-type="button_press" data-player-choice="${choice}" data-app-context="game_app">
+                    ${choice === 'Rock' ? '🪨' : choice === 'Paper' ? '📄' : '✂️'} ${choice}
+                </button>
+            `).join('');
+
+            return `
+                <h2 class="text-3xl font-bold text-teal-300 mb-6">Rock-Paper-Scissors</h2>
+                <p class="game-status mb-4">${rpsGameResult || 'Choose your move!'}</p>
+                <div class="game-choices flex justify-center gap-4">
+                    ${buttons}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="reset_rps_game" data-interaction-type="button_press" data-app-context="game_app">Reset Game</button>
+                <button class="generated-button mt-2" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="game_app">Back to Home</button>
+            `;
+        }
+
+        function renderTravelApp(origin, destination, flightResults) {
+            let resultsHtml = `<p>Enter origin and destination to search flights.</p>`;
+            if (flightResults && flightResults.length > 0) {
+                resultsHtml = `
+                    <p class="mb-4">Simulated Flights from ${origin} to ${destination}:</p>
+                    <table class="flights-table">
+                        <thead>
+                            <tr>
+                                <th>Airline</th>
+                                <th>Flight</th>
+                                <th>Depart</th>
+                                <th>Arrive</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${flightResults.map(flight => `
+                                <tr>
+                                    <td>${flight.airline}</td>
+                                    <td>${flight.flightNumber}</td>
+                                    <td>${flight.departureTime}</td>
+                                    <td>${flight.arrivalTime}</td>
+                                    <td>${flight.price}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else if (origin && destination) {
+                resultsHtml = `<p>No simulated flights found for ${origin} to ${destination}.</p>`;
+            }
+
+            return `
+                <h2 class="text-3xl font-bold text-indigo-300 mb-6">Travel App</h2>
+                <p class="text-lg text-gray-300 mb-4">Get AI-Generated Flight Search (Simulated)</p>
+                <input type="text" id="travel_origin_input" class="w-full max-w-md p-3 mb-2 rounded-lg" value="${origin}" placeholder="Origin City">
+                <input type="text" id="travel_destination_input" class="w-full max-w-md p-3 mb-4 rounded-lg" value="${destination}" placeholder="Destination City">
+                <button class="generated-button" data-interaction-id="search_flights_action" data-interaction-type="button_press" data-value-from="travel_origin_input,travel_destination_input" data-app-context="travel_app">Search Flights</button>
+                <div id="travel_results_display" class="travel-result-box bg-gray-700 text-gray-300">
+                    ${resultsHtml}
+                </div>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="travel_app">Back to Home</button>
+            `;
+        }
+
+        function renderSoundRecorderApp() {
+            return `
+                <h2 class="text-3xl font-bold text-pink-300 mb-6">Sound Recorder</h2>
+                <p id="sound_recorder_status" class="mb-4">${recordingStatus}</p>
+                <div class="flex gap-4">
+                    <button class="generated-button" data-interaction-id="start_recording" data-interaction-type="button_press" data-app-context="sound_recorder_app" ${recordingStatus === 'Recording...' ? 'disabled' : ''}>
+                        <span class="text-2xl">🔴</span> Record
+                    </button>
+                    <button class="generated-button bg-orange-600 hover:bg-orange-700" data-interaction-id="stop_recording" data-interaction-type="button_press" data-app-context="sound_recorder_app" ${recordingStatus !== 'Recording...' ? 'disabled' : ''}>
+                        <span class="text-2xl">⏹️</span> Stop
+                    </button>
+                    <button class="generated-button bg-green-600 hover:bg-green-700" data-interaction-id="play_recording" data-interaction-type="button_press" data-app-context="sound_recorder_app" ${!recordedAudioBlob ? 'disabled' : ''}>
+                        <span class="text-2xl">▶️</span> Play
+                    </button>
+                </div>
+                <audio id="sound_recorder_audio_playback" controls></audio>
+                <p class="text-sm text-gray-400 mt-4">(Audio recordings are in-memory and will be lost on page refresh or if you leave this app.)</p>
+                <button class="generated-button mt-6" data-interaction-id="back_to_home" data-interaction-type="button_press" data-app-context="sound_recorder_app">Back to Home</button>
+            `;
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                recordedAudioBlob = null;
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    recordingStatus = "Ready to Play";
+                    generateScreen({ id: 'update_sound_recorder_status', appContext: 'sound_recorder_app' });
+                };
+
+                mediaRecorder.start();
+                recordingStatus = "Recording...";
+                generateScreen({ id: 'update_sound_recorder_status', appContext: 'sound_recorder_app' });
+            } catch (err) {
+                console.error("Error accessing microphone: ", err);
+                await showCustomAlert("Microphone access denied or not available. Please allow access.");
+                recordingStatus = "Ready (Error)";
+                generateScreen({ id: 'update_sound_recorder_status', appContext: 'sound_recorder_app' });
+            }
+        }
+
+        async function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                recordingStatus = "Processing...";
+                generateScreen({ id: 'update_sound_recorder_status', appContext: 'sound_recorder_app' });
+            }
+        }
+
+        function playRecording() {
+            if (recordedAudioBlob) {
+                const audioPlayer = document.getElementById('sound_recorder_audio_playback');
+                if (audioPlayer) {
+                    audioPlayer.src = URL.createObjectURL(recordedAudioBlob);
+                    audioPlayer.style.display = 'block';
+                    audioPlayer.play();
+                    recordingStatus = "Playing...";
+                    generateScreen({ id: 'update_sound_recorder_status', appContext: 'sound_recorder_app' });
+                    audioPlayer.onended = () => {
+                        recordingStatus = "Ready to Play";
+                        generateScreen({ id: 'update_sound_recorder_status', appContext: 'sound_recorder_app' });
+                    };
+                }
+            } else {
+                showCustomAlert("No recording available to play.");
+            }
+        }
+
+
+        /**
+         * Creates the HTML for the home screen with all 9 apps.
+         * This is the initial view of your Neural OS.
+         * @returns {string} HTML string for the home screen.
+         */
+        function createHomeScreenHTML() {
+            currentAppContext = 'home_screen';
+            interactionTrace.length = 0;
+
+            // Sort installedApps by name for consistent display
+            const sortedInstalledApps = Object.values(installedApps).sort((a, b) => a.name.localeCompare(b.name));
+
+            const appButtonsHtml = sortedInstalledApps.map(app => `
+                <button class="os-icon-button" data-interaction-id="${app.interactionId}" data-interaction-type="button_press" data-app-context="home_screen">
+                    ${app.icon}<br>${app.name}
+                </button>
+            `).join('');
+
+            return `
+                <h1 class="text-4xl font-bold text-blue-500 mb-8">Welcome to Neural OS!</h1>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                    ${appButtonsHtml}
+                </div>
+                <p class="text-sm text-gray-400 mt-6">User ID: ${currentUserId}</p>
+                <p class="text-sm text-gray-400">(Apps and file changes are persistent using Firestore.)</p>
+            `;
+        }
+
+        /**
+         * Attaches event listeners to all interactive elements within the OS content.
+         * This is crucial as content is dynamically re-rendered.
+         */
+        function setupEventListeners() {
+            const interactiveElements = osContentDiv.querySelectorAll('[data-interaction-id]');
+            interactiveElements.forEach(element => {
+                element.onclick = async (event) => {
+                    // Ignore clicks if loading indicator is active, unless it's the "Back to Home" button
+                    if (loadingIndicator.style.display === 'block' && element.dataset.interactionId !== 'back_to_home') {
+                        console.log("Interaction ignored: loading in progress.");
+                        return;
+                    }
+
+                    const interactionId = element.dataset.interactionId;
+                    const interactionType = element.dataset.interactionType || 'click';
+                    const elementText = element.innerText;
+                    const elementType = element.tagName.toLowerCase();
+                    const appContext = element.dataset.appContext || currentAppContext;
+
+                    let value = null;
+                    if (element.dataset.valueFrom) {
+                        const targetElementIds = element.dataset.valueFrom.split(',');
+                        if (interactionId === 'send_email_action') {
+                             const to = document.getElementById(targetElementIds[0])?.value || '';
+                             const subject = document.getElementById(targetElementIds[1])?.value || '';
+                             const body = document.getElementById(targetElementIds[2])?.value || '';
+                             value = `${to},${subject},${body}`;
+                        } else {
+                            value = targetElementIds.map(id => document.getElementById(id)?.value || '').join(',');
+                        }
+                    } else if (element.dataset.value) {
+                        value = element.dataset.value;
+                    } else if (elementType === 'input' && (element.type === 'range' || element.type === 'checkbox')) {
+                        value = element.value || element.checked;
+                    }
+
+
+                    if (interactionId.startsWith('calc_')) {
+                        const display = document.getElementById('calc_display');
+                        if (display) {
+                            if (interactionId === 'calc_equals') {
+                                try {
+                                    // Ensure the expression is safe to evaluate
+                                    // This regex allows digits, +, -, *, /, ., and parentheses.
+                                    // It explicitly disallows letters and other characters that could lead to XSS.
+                                    const expression = display.value.replace(/[^-()\d/*+.]/g, '');
+                                    display.value = eval(expression) || 'Error';
+                                } catch (e) {
+                                    display.value = 'Error';
+                                    console.error("Calculator Error:", e);
+                                }
+                            } else if (interactionId === 'calc_clear') {
+                                display.value = '0';
+                            } else if (value) {
+                                if (display.value === '0' && value !== '.' && !isNaN(value)) { // Start new number if display is 0 and not a decimal point or operator
+                                    display.value = value;
+                                } else {
+                                    display.value += value;
+                                }
+                            }
+                        }
+                        // Calculator interactions do not trigger a full screen re-render for performance
+                        // So, we return here to prevent generateScreen from being called immediately
+                        if (interactionId !== 'back_to_home') {
+                            event.stopPropagation(); // Prevent event from bubbling up and re-triggering generateScreen
+                            return;
+                        }
+                    }
+
+                    if (interactionId === 'back_to_home') {
+                        osContentDiv.innerHTML = createHomeScreenHTML();
+                        setupEventListeners();
+                        return;
+                    }
+
+                    generateScreen({
+                        id: interactionId,
+                        type: interactionType,
+                        value: value,
+                        elementType: elementType,
+                        elementText: elementText,
+                        appContext: appContext,
+                        dataImageIndex: element.dataset.imageIndex,
+                        dataEmailId: element.dataset.emailId,
+                        dataCurrentImageIndex: element.dataset.currentImageIndex,
+                        dataAppId: element.dataset.appId,
+                        dataFsAction: element.dataset.fsAction,
+                        dataPathSegment: element.dataset.pathSegment,
+                        dataFilepath: element.dataset.filepath,
+                        dataPlayerChoice: element.dataset.playerChoice
+                    });
+                };
+            });
+
+            // Specific event listener for Play Store search input
+            const playstoreSearchInput = document.getElementById('playstore_search_input');
+            if (playstoreSearchInput) {
+                playstoreSearchInput.addEventListener('input', (event) => {
+                    // Trigger a re-render of the Play Store app with the current search query
+                    // This is client-side filtering, not a new AI call
+                    generateScreen({
+                        id: 'search_playstore_apps',
+                        type: 'input_change',
+                        value: event.target.value,
+                        elementType: 'input',
+                        elementText: '',
+                        appContext: 'playstore_app'
+                    });
+                });
+            }
+
+            const brightnessSlider = document.getElementById('brightness_slider');
+            const brightnessValueSpan = document.getElementById('brightness_value');
+            if (brightnessSlider && brightnessValueSpan) {
+                brightnessSlider.oninput = () => {
+                    brightnessValueSpan.textContent = `${brightnessSlider.value}%`;
+                };
+            }
+
+            const volumeSlider = document.getElementById('volume_slider');
+            const volumeValueSpan = document.getElementById('volume_value');
+            if (volumeSlider && volumeValueSpan) {
+                volumeSlider.oninput = () => {
+                    volumeValueSpan.textContent = `${volumeSlider.value}%`;
+                };
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initFirebaseAndLoadData();
+            generateScreen({
+                id: 'initial_load',
+                type: 'system_boot',
+                value: null,
+                elementType: 'body',
+                elementText: 'System Initialized',
+                appContext: 'home_screen'
+            });
+        });
+
+    </script>
+</body>
+</html>
