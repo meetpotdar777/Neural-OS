@@ -2,12 +2,17 @@
     "cSpell.words": [
         "appmanager",
         "currentimg",
+        "dailyherald",
+        "devjournal",
+        "Firestore",
         "genai",
         "generativeai",
         "jsonify",
+        "myblog",
         "neuralos",
         "playstore",
-        "Statefulness"
+        "Statefulness",
+        "unparseable"
     ],
     "python.pythonPath": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python311\\python.exe"
 }
